@@ -1,4 +1,4 @@
-# boblobblob
+# boblobblob - Hiding git blobs in plain sight
 This project demonstrates some experimentation with how Github handles git blobs, inspired by research done by [Kevin Hodges](https://github.com/khodges42/ghostfacekilla).
 
 It will serve both as a repository that will document my experiments, and results of this research.
@@ -64,7 +64,7 @@ echo "secret malicious code has been executed"
 secret malicious code has been executed
 ```
 
-However, what if we wanted to use this server a file through `github.com` that would be difficult to discover through curosory investigation?
+However, what if we wanted to use to serve a file through `github.com` that would be difficult to discover through curosory investigation?
 
 ## Using the Git Blobs api
 GitHub provides a [Git Blobs](https://developer.github.com/v3/git/blobs/) api that allows us to interact with git blobs with no authentication. The HTTP request for this uses the following format for `api.github.com`:
@@ -81,3 +81,10 @@ secret malicious code has been executed
 ```
 
 This demonstrates one method to store and serve a file you wish to remain hidden through GitHub's handling of git blobs.
+
+# Testing the offical way to redact commits
+The method we used above is actually an [extremely popular answer on Stack Overflow](https://stackoverflow.com/a/1338744), but not the [offically documented method](https://help.github.com/articles/removing-sensitive-data-from-a-repository/) to remove sensitive data from a repository.
+
+Let's create a new file, commit it and test to see if we can still do this after following the offical documentation.
+
+
