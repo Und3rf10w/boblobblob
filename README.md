@@ -87,4 +87,105 @@ The method we used above is actually an [extremely popular answer on Stack Overf
 
 Let's create a new file, commit it and test to see if we can still do this after following the offical documentation.
 
+```bash
+# cat ohnoesnotmypassword
+ayyyyyylmaowtfbbq
+# git add ohnoesnotmypassword
+# git commit -m "added my password"
+[master e24a8e6] added my password
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ohnoesnotmypassword
+ # git push
+ Counting objects: 4, done.
+Delta compression using up to 12 threads.
+Compressing objects: 100% (2/2), done.
+Writing objects: 100% (3/3), 305 bytes | 0 bytes/s, done.
+Total 3 (delta 0), reused 0 (delta 0)
+To git@github.com:Und3rf10w/boblobblob.git
+   09b64c0..e24a8e6  master -> master
+```
+
+This creates [a tree](https://github.com/Und3rf10w/boblobblob/tree/e24a8e6af0cad36c9d83b0d27f33159a217a927c). Before we delete it, we must make sure we grab the sha sum of our file `ohnoesnotmypassword` that we want to access.
+
+```bash
+# git hash-object ohnoesnotmypassword
+8f42259c73edc4b9ad98089cc6b9639de6fcb9c4
+```
+
+Now, following the instructions provided by GitHub, if we want to revoke this commit, we must use `git filter-branch` to remove the file:
+
+```bash
+# git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch ./ohnoesnotmypassword' --prune-empty --tag-name-filter cat -- --all
+Rewrite e24a8e6af0cad36c9d83b0d27f33159a217a927c (5/5)rm 'ohnoesnotmypassword'
+
+Ref 'refs/heads/master' was rewritten
+Ref 'refs/remotes/origin/master' was rewritten
+WARNING: Ref 'refs/remotes/origin/master' is unchanged
+```
+
+Finally, we mush force push this:
+
+```bash
+# git push origin --force --all
+git push origin --force --all
+Counting objects: 13, done.
+Delta compression using up to 12 threads.
+Compressing objects: 100% (6/6), done.
+Writing objects: 100% (11/11), 1.00 KiB | 0 bytes/s, done.
+Total 11 (delta 2), reused 2 (delta 0)
+remote: Resolving deltas: 100% (2/2), completed with 1 local object.
+To git@github.com:Und3rf10w/boblobblob.git
+ + e24a8e6...8df8865 master -> master (forced update)
+ ```
+ 
+ We've followed the offically suggested way to remove this commit, and again, the GitHub interface shows no indication that this ever happened. Note that we intentionally haven't yet attempted to reflog the repository yet.
+ 
+## Attempting to access `ohnoesnotmypassword` before reflog
+First, we'll try to access it locally using `git`:
+
+```bash
+git cat-file -p 8f42259c73edc4b9ad98089cc6b9639de6fcb9c4
+ayyyyyylmaowtfbbq
+```
+
+As before, this file is still stored within our local `.git` working directory. Next, let's attempt to access it through the GitHub api:
+
+```bash
+curl --silent -H "Content-Type: application/json" -H "Accept: application/vnd.github.v3.raw" https://api.github.com/repos/Und3rf10w/boblobblob/git/blobs/8f42259c73edc4b9ad98089cc6b9639de6fcb9c4
+ayyyyyylmaowtfbbq
+```
+
+It looks like we can still access the file, and if we browse to [our tree](https://github.com/Und3rf10w/boblobblob/tree/e24a8e6af0cad36c9d83b0d27f33159a217a927c), we can still access this repository, including `ohnoesnotmypassword`.
+
+### Trying the reflog
+We purposly ommitted the last step that claims to `force all objects in your local repository to be dereferenced and garbage collected`, let's attempt this and see how it affects our tests.
+
+```bash
+# git for-each-ref --format='delete %(refname)' refs/original | git update-ref --stdin
+# git reflog expire --expire=now --all
+# git gc --prune=now
+Counting objects: 12, done.
+Delta compression using up to 12 threads.
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (12/12), done.
+Total 12 (delta 2), reused 2 (delta 0)
+```
+
+Now let's try to access it locally:
+```bash
+git cat-file -p 8f42259c73edc4b9ad98089cc6b9639de6fcb9c4
+fatal: Not a valid object name 8f42259c73edc4b9ad98089cc6b9639de6fcb9c4
+```
+
+As expected, the file is scrubbed from our local `.git` working directory. However, is it still stored online?
+
+```bash
+curl --silent -H "Content-Type: application/json" -H "Accept: application/vnd.github.v3.raw" https://api.github.com/repos/Und3rf10w/boblobblob/git/blobs/8f42259c73edc4b9ad98089cc6b9639de6fcb9c4
+ayyyyyylmaowtfbbq
+```
+
+# Implications
+The most commonly suggested way of redacting sensitive information isn't effective in ACTUALLY redacting information. While one could make the argument that an attacker would have to know the sha sum of the git blob they want to access, and thus already be aware of the contents of the file, a valid counter argument would be that as long as the attacker was aware of the sha sum for any tree containing the info that was pushed to `GitHub`, they'd still be able to retrieve it.
+
+In addition, the implications of storing data on GitHub and being able to retrieve it with no authentication, and be difficult to discover are interesting as well. Perhaps this could be an interesting way to execute backdoor code for a malicious libary, or become a stealthy c2 channel.
 
