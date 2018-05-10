@@ -189,3 +189,10 @@ The most commonly suggested way of redacting sensitive information isn't effecti
 
 In addition, the implications of storing data on GitHub and being able to retrieve it with no authentication, and be difficult to discover are interesting as well. Perhaps this could be an interesting way to execute backdoor code for a malicious libary, or become a stealthy c2 channel.
 
+## auto-boblobblob.sh
+In order to automate testing off this, I've created a script `auto-boblobblob.sh` that automates the pushing and revoking of a file, and returns its commit hash and file hash. Usage is simple:
+
+`USAGE: auto-boblobblob.sh "$/path/to/file/to/hide"`
+
+Drop this script into the root of a repository you wish to hide a file in and give it a test.
+
